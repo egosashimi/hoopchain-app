@@ -215,6 +215,10 @@ def norm(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", s).strip()
 
 
+def name_tokens(name: str) -> set[str]:
+    return set(norm(name).split()) - {"jr", "sr", "ii", "iii", "iv"}
+
+
 def season_label(start_year: int) -> str:
     return f"{start_year}-{(start_year + 1) % 100:02d}"
 
@@ -232,7 +236,8 @@ def snapshot_times(start_year: int, now: datetime) -> list[datetime]:
     return times
 
 
-def build_season(start_year: int, now: datetime, graph_names: dict[str, str | None]) -> dict:
+def build_season(start_year: int, now: datetime, graph_names: dict[str, str | None],
+                 graph_ids: dict[str, str]) -> dict:
     season = season_label(start_year)
     times = snapshot_times(start_year, now)
     seen: dict[str, dict[str, str]] = {}   # team → {title: name}
@@ -256,7 +261,11 @@ def build_season(start_year: int, now: datetime, graph_names: dict[str, str | No
     all_titles = sorted({title for team in TEAMS for title in seen[team]})
     wikidata_ids = nba_ids_for_titles(all_titles)
 
-    teams, unresolved = {}, {}
+    # Graph name for each known ID, to catch IDs whose node is a different person
+    graph_name_by_id = {pid: n for n, pid in graph_names.items() if pid}
+    graph_name_by_id.update(graph_ids)
+
+    teams, unresolved, conflicts = {}, {}, []
     via_wikidata = via_name = 0
     for team in TEAMS:
         players = {}
@@ -268,22 +277,21 @@ def build_season(start_year: int, now: datetime, graph_names: dict[str, str | No
                 pid = graph_names.get(norm(name))
                 if pid:
                     via_name += 1
-            if pid:
+            known = graph_name_by_id.get(pid) if pid else None
+            if known is not None and not (name_tokens(name) & name_tokens(known)):
+                # The graph has this ID as someone else: leave it out rather than merge two people
+                conflicts.append(f"{name} → {pid} (graph: {known})")
+            elif pid:
                 players[pid] = name
             else:
                 unresolved.setdefault(team, []).append(name)
         teams[team] = {"name": team, "players": dict(sorted(players.items(), key=lambda kv: int(kv[0])))}
 
-    # Sanity: Wikidata IDs that the graph already knows should carry the same name
-    id_to_graph_name = {pid: n for n, pid in graph_names.items() if pid}
-    mismatches = sorted({f"{name} → {pid} (graph: {id_to_graph_name[pid]})"
-                         for team in teams.values() for pid, name in team["players"].items()
-                         if pid in id_to_graph_name and id_to_graph_name[pid] != norm(name)})
     print(f"{season}: {len(times)} snapshots, {sum(len(t['players']) for t in teams.values())} roster spots "
           f"({via_wikidata} via Wikidata, {via_name} via name match), "
-          f"{sum(len(v) for v in unresolved.values())} unresolved, {len(mismatches)} name/ID mismatches")
-    for m in mismatches[:20]:
-        print(f"  mismatch: {m}")
+          f"{sum(len(v) for v in unresolved.values())} unresolved, {len(set(conflicts))} ID conflicts")
+    for c in sorted(set(conflicts)):
+        print(f"  ID conflict (left out — fix graph.pkl identity, see 21_fix_player_identities.py): {c}")
     for team, names in sorted(unresolved.items()):
         print(f"  unresolved {team}: {', '.join(names)}")
 
@@ -304,10 +312,12 @@ def main() -> None:
     # Exact, unique names in graph.pkl → NBA ID (ambiguous names map to None and never match)
     G = pickle.load(open(GRAPH_PKL, "rb"))
     graph_names: dict[str, str | None] = {}
+    graph_ids: dict[str, str] = {}
     for k, d in G.nodes(data=True):
         if d.get("type") == "player":
             n = norm(d.get("name", ""))
             graph_names[n] = None if n in graph_names else k.split(":", 1)[1]
+            graph_ids[k.split(":", 1)[1]] = d.get("name", "")
 
     for start in range(FIRST_SEASON, current_start + 1):
         path = OUT_DIR / f"{season_label(start)}.json"
@@ -316,7 +326,7 @@ def main() -> None:
         if now < datetime(start, 10, 20, tzinfo=timezone.utc):
             print(f"{season_label(start)}: not started")
             continue
-        season = build_season(start, now, graph_names)
+        season = build_season(start, now, graph_names, graph_ids)
         path.write_text(json.dumps(season, indent=1, ensure_ascii=False) + "\n")
 
 

@@ -103,9 +103,6 @@ def main() -> None:
             if d.get("type") == "player":
                 d["is_active"] = k in latest_roster
 
-    keys = sorted(G.nodes, key=lambda k: (G.nodes[k].get("type") != "player", k))
-    index = {k: i for i, k in enumerate(keys)}
-
     # ---- Groups ----
     groups: dict[tuple[str, str], set[str]] = collections.defaultdict(set)
     coach_groups: dict[str, set[str]] = collections.defaultdict(set)
@@ -116,6 +113,13 @@ def main() -> None:
             groups[(d["type"], d["label"])].update((u, v))
     for label, members in roster_groups.items():
         groups[("teammate", label)].update(members)
+
+    # Nodes with no connection can't be part of any chain (and include orphaned
+    # duplicates like a second Scoot Henderson), so they stay out of the game
+    connected = set().union(*groups.values(), *coach_groups.values())
+    isolated = [k for k in G.nodes if k not in connected]
+    keys = sorted(connected, key=lambda k: (G.nodes[k].get("type") != "player", k))
+    index = {k: i for i, k in enumerate(keys)}
 
     # ---- Per-player derived attributes ----
     seasons: dict[str, set[int]] = collections.defaultdict(set)
@@ -288,7 +292,8 @@ def main() -> None:
         hops = nx.shortest_path_length(classic, f"player:{a}", f"player:{b}") - 1
         band_count[(DAILY_DIFFICULTY_BY_WEEKDAY[(SCHEDULE_START + timedelta(days=offset)).weekday()],
                     difficulty_label(hops))] += 1
-    print(f"recent seasons merged from data/rosters: {roster_seasons or 'none'}")
+    print(f"recent seasons merged from data/rosters: {roster_seasons or 'none'}; "
+          f"{len(isolated)} unconnected nodes left out")
     print(f"graph.json: {len(keys)} nodes, {len(groups_out)} groups, {len(coaches_out)} coach groups, "
           f"{len(wild_pairs)} connected pairs; pools: " + ", ".join(f"{k}={len(v)}" for k, v in pools.items()))
     print(f"daily.json: {len(schedule)} days ({len(existing)} kept) {SCHEDULE_START}..{SCHEDULE_END}; "

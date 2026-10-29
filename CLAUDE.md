@@ -152,7 +152,13 @@ python data/etl/07_seed_players_table.py
 ## Identity / data integrity (read before touching the graph)
 
 Player identity must be reconciled across the nbadb base, the Balldontlie patch,
-and the materialized `graph_edges` table. Duplicate nodes (e.g. a second Chet
+the materialized `graph_edges` table, and the Wikipedia/Wikidata roster files.
+`20_fetch_recent_rosters.py` flags an "ID conflict" when a roster player's NBA ID
+belongs to a differently named graph node and leaves that player out; fix the
+node in `21_fix_player_identities.py` (it already corrected four 2023/24
+draftees mislabeled as Flagg, Ausar/Amen Thompson and Jarace Walker), rerun the
+export, recommit. The export leaves out nodes with no connections (148 old
+players lacking roster data, plus orphaned duplicates) — the game can't use them. Duplicate nodes (e.g. a second Chet
 Holmgren with no headshot) and "missing" in-era connections (e.g. Wade↔Butler
 2003-04 Heat, Kobe↔Boozer 2014-15 Lakers) are usually the SAME root cause: a
 player exists as two nodes, or the teammate edge build dropped the pair. A data
