@@ -59,7 +59,8 @@ TEAMS = [
     "Sacramento Kings", "San Antonio Spurs", "Toronto Raptors", "Utah Jazz", "Washington Wizards",
 ]
 
-PLAYER_TEMPLATE = re.compile(r"\{\{\s*(?:NBA|Basketball)[ _]roster[ _]player\s*\|", re.I)
+# NBA roster templates list players as {{player2 | num = 7 | first = Jaylen | last = Brown | ...}}
+PLAYER_TEMPLATE = re.compile(r"\{\{\s*(?:player2?|(?:NBA|Basketball)[ _]roster[ _]player)\s*\|", re.I)
 
 
 # ------------------------------------
