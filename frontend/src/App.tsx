@@ -153,11 +153,6 @@ function PuzzleError({ error }: { error: string }) {
       >
         TRY AGAIN
       </button>
-      <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: 'var(--color-text-muted)' }}>
-        Backend: <code style={{ fontFamily: "'Barlow Condensed', monospace", color: 'var(--color-accent)' }}>
-          {import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'}
-        </code>
-      </p>
     </div>
   );
 }

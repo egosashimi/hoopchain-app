@@ -1,8 +1,10 @@
 // ============================================================
 // HOOPCHAIN — Typed API Client
+// The game runs entirely in the browser (GitHub Pages, no backend):
+// every call is answered by src/engine from the static data files.
+// The interface matches the old FastAPI endpoints so callers are unchanged.
 // ============================================================
 
-import axios, { type AxiosInstance, AxiosError } from 'axios';
 import type {
   HealthResponse,
   Puzzle,
@@ -17,21 +19,19 @@ import type {
   LeaderboardEntry,
   GameMode,
   Difficulty,
+  EdgeType,
 } from '../types';
-
-// ------------------------------------
-// Config
-// ------------------------------------
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
-
-const http: AxiosInstance = axios.create({
-  baseURL: BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+import { EDGE_WEIGHT, MODE_TO_EDGE_TYPE, loadGraph } from '../engine/graph';
+import {
+  calculateScore,
+  generateShareText,
+  getDailyPuzzle,
+  getFreePlayPuzzle,
+  resolvePuzzle,
+  shiftDate,
+  todayDate,
+} from '../engine/puzzles';
+import { useUserStore } from '../store/userStore';
 
 // ------------------------------------
 // Error handling
@@ -42,16 +42,23 @@ export interface ApiError {
   status?: number;
 }
 
-function handleError(err: unknown): never {
-  if (err instanceof AxiosError) {
-    const message =
-      err.response?.data?.detail ||
-      err.response?.data?.message ||
-      err.message ||
-      'An unexpected error occurred';
-    throw { message, status: err.response?.status } as ApiError;
+function apiError(message: string, status?: number): ApiError {
+  return { message, status };
+}
+
+async function run<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err && typeof err === 'object' && 'message' in err) throw apiError(String(err.message), (err as ApiError).status);
+    throw apiError('An unexpected error occurred');
   }
-  throw { message: 'An unexpected error occurred' } as ApiError;
+}
+
+const VALID_MODES: GameMode[] = ['classic', 'wild', 'coach'];
+
+function normalizeMode(mode?: GameMode): GameMode {
+  return mode && VALID_MODES.includes(mode) ? mode : 'classic';
 }
 
 // ------------------------------------
@@ -59,14 +66,10 @@ function handleError(err: unknown): never {
 // ------------------------------------
 
 export const healthApi = {
-  check: async (): Promise<HealthResponse> => {
-    try {
-      const { data } = await http.get<HealthResponse>('/health');
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+  check: (): Promise<HealthResponse> => run(async () => {
+    const g = await loadGraph();
+    return { status: 'ok', graph_nodes: g.stats.nodes, graph_edges: g.stats.edges, mock_mode: false };
+  }),
 };
 
 // ------------------------------------
@@ -74,36 +77,18 @@ export const healthApi = {
 // ------------------------------------
 
 export const puzzleApi = {
-  getToday: async (): Promise<Puzzle> => {
-    try {
-      const { data } = await http.get<Puzzle>('/puzzle/today');
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+  getToday: (): Promise<Puzzle> => run(() => getDailyPuzzle(todayDate())),
 
-  getByDate: async (date: string): Promise<Puzzle> => {
-    try {
-      const { data } = await http.get<Puzzle>(`/puzzle/${date}`);
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+  getByDate: (date: string): Promise<Puzzle> => run(async () => {
+    if (date > todayDate()) throw apiError('Puzzle not available yet.', 404);
+    return getDailyPuzzle(date);
+  }),
 
-  getRandom: async (mode?: GameMode, difficulty?: Difficulty, excludeIds?: number[]): Promise<Puzzle> => {
-    try {
-      const params: Record<string, string> = {};
-      if (mode) params.mode = mode;
-      if (difficulty) params.difficulty = difficulty;
-      if (excludeIds && excludeIds.length > 0) params.exclude_ids = excludeIds.join(',');
-      const { data } = await http.get<Puzzle>('/puzzle/random', { params });
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+  getRandom: (mode?: GameMode, difficulty?: Difficulty, excludeIds?: number[]): Promise<Puzzle> => run(async () => {
+    const puzzle = await getFreePlayPuzzle(normalizeMode(mode), difficulty, excludeIds);
+    if (!puzzle) throw apiError('Could not generate a free-play puzzle. Try again.', 503);
+    return puzzle;
+  }),
 };
 
 // ------------------------------------
@@ -111,16 +96,10 @@ export const puzzleApi = {
 // ------------------------------------
 
 export const searchApi = {
-  players: async (query: string, limit = 10): Promise<PlayerSearchResult[]> => {
-    try {
-      const { data } = await http.get<PlayerSearchResult[]>('/search/players', {
-        params: { q: query, limit },
-      });
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+  players: (query: string, limit = 10): Promise<PlayerSearchResult[]> => run(async () => {
+    const g = await loadGraph();
+    return g.searchPlayers(query.trim(), Math.min(Math.max(limit, 1), 20));
+  }),
 };
 
 // ------------------------------------
@@ -128,86 +107,148 @@ export const searchApi = {
 // ------------------------------------
 
 export const validateApi = {
-  hop: async (req: HopValidationRequest): Promise<HopValidationResponse> => {
-    try {
-      const { data } = await http.post<HopValidationResponse>('/validate/hop', req);
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+  hop: (req: HopValidationRequest): Promise<HopValidationResponse> => run(async () => {
+    const g = await loadGraph();
+    const mode = normalizeMode(req.mode);
+    const a = g.indexOf(req.from_type, req.from_id);
+    const b = g.indexOf(req.to_type, req.to_id);
+    if (a === undefined || b === undefined) return { valid: false };
 
-  path: async (req: PathValidationRequest): Promise<PathValidationResponse> => {
-    try {
-      const { data } = await http.post<PathValidationResponse>('/validate/path', req);
-      return data;
-    } catch (err) {
-      return handleError(err);
+    const c = g.connection(a, b, mode);
+    if (c) return { valid: true, edge_type: c.type, edge_label: c.label, weight: EDGE_WEIGHT[c.type] };
+    // Connected, just not by the edge type this mode allows
+    if (MODE_TO_EDGE_TYPE[mode] !== null && g.connection(a, b, 'wild')) return { valid: false, reason: 'wrong_edge_type' };
+    return { valid: false };
+  }),
+
+  path: (req: PathValidationRequest): Promise<PathValidationResponse> => run(async () => {
+    const g = await loadGraph();
+    const mode = normalizeMode(req.mode);
+    const puzzle = await getDailyPuzzle(req.puzzle_date);
+    const path = req.path;
+    if (!path || path.length < 2) {
+      return { valid: false, complete: false, hops: 0, optimal_hops: puzzle.optimal_hops, edge_types: [] };
     }
-  },
+
+    const edgeTypes: EdgeType[] = [];
+    for (let i = 0; i < path.length - 1; i++) {
+      const hop = await validateApi.hop({
+        from_id: path[i].id, from_type: path[i].type ?? 'player',
+        to_id: path[i + 1].id, to_type: path[i + 1].type ?? 'player',
+        mode,
+      });
+      if (!hop.valid || !hop.edge_type) {
+        return {
+          valid: false, complete: false, hops: i, optimal_hops: puzzle.optimal_hops, edge_types: edgeTypes,
+          invalid_at_index: i, reason: hop.reason,
+        } as PathValidationResponse;
+      }
+      edgeTypes.push(hop.edge_type);
+    }
+
+    const valid = path[0].id === puzzle.start_player.id && g.indexOf('player', path[0].id) !== undefined;
+    return {
+      valid,
+      complete: valid && path[path.length - 1].id === puzzle.end_player.id,
+      hops: path.length - 1,
+      optimal_hops: puzzle.optimal_hops,
+      edge_types: edgeTypes,
+    };
+  }),
 };
 
 // ------------------------------------
 // Game
 // ------------------------------------
 
+/** Streak after this game, from the locally stored stats (the backend's Streak table rules). */
+function nextStreak(puzzleDate: string, won: boolean): number {
+  const { streak, lastPlayed } = useUserStore.getState();
+  if (!won) return 0;
+  if (lastPlayed === puzzleDate) return streak;           // already counted today
+  if (lastPlayed === null || lastPlayed === shiftDate(puzzleDate, -1)) return streak + 1;
+  return 1;
+}
+
+async function completeGame(req: GameCompleteRequest, isFreeplay: boolean): Promise<GameCompleteResponse> {
+  const mode = normalizeMode(req.mode);
+  const puzzle = await resolvePuzzle(req.puzzle_date, mode);
+  const edgeTypes = req.path.map((n) => n.edgeType).filter((t): t is EdgeType => !!t);
+  const optimalHops = puzzle.optimal_hops_by_mode?.[mode] ?? puzzle.optimal_hops;
+
+  const score = req.gave_up
+    ? 0
+    : calculateScore(req.hops_used, optimalHops, req.time_seconds, puzzle.difficulty, edgeTypes);
+  const streak = isFreeplay ? 0 : nextStreak(req.puzzle_date, !req.gave_up);
+
+  const shareText = generateShareText({
+    puzzleDate: req.puzzle_date,
+    startName: puzzle.start_player.full_name,
+    endName: puzzle.end_player.full_name,
+    hopsUsed: req.hops_used,
+    optimalHops,
+    streak,
+    gaveUp: req.gave_up,
+    mode,
+    isFreeplay,
+  });
+
+  // Optimal path for the post-game reveal, within the active mode's edge types
+  const g = await loadGraph();
+  const a = g.indexOf('player', puzzle.start_player.id);
+  const b = g.indexOf('player', puzzle.end_player.id);
+  const best = a !== undefined && b !== undefined ? g.shortestPath(a, b, mode) : null;
+
+  const result: GameCompleteResponse = {
+    score,
+    share_text: shareText,
+    optimal_path: best ? g.labeledPath(best, mode) : undefined,
+  };
+  if (!isFreeplay) result.streak = streak;
+  return result;
+}
+
 export const gameApi = {
-  complete: async (req: GameCompleteRequest): Promise<GameCompleteResponse> => {
-    try {
-      const { data } = await http.post<GameCompleteResponse>('/game/complete', req);
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+  complete: (req: GameCompleteRequest): Promise<GameCompleteResponse> => run(() => completeGame(req, false)),
 
-  completeFreeplay: async (req: GameCompleteRequest): Promise<GameCompleteResponse> => {
-    try {
-      const { data } = await http.post<GameCompleteResponse>('/game/complete/freeplay', req);
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+  completeFreeplay: (req: GameCompleteRequest): Promise<GameCompleteResponse> => run(() => completeGame(req, true)),
 
-  getStats: async (clientId: string): Promise<GameStats> => {
-    try {
-      const { data } = await http.get<GameStats>(`/game/stats/${clientId}`);
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
+  // Stats live in localStorage (userStore); the client ID is no longer needed
+  getStats: async (): Promise<GameStats> => {
+    const s = useUserStore.getState();
+    return {
+      streak: s.streak,
+      max_streak: s.maxStreak,
+      total_played: s.totalPlayed,
+      win_pct: s.totalPlayed > 0 ? Math.round((s.totalWon / s.totalPlayed) * 1000) / 1000 : 0,
+      avg_score: s.avgScore,
+      avg_hops: s.avgHops,
+      last_played: s.lastPlayed ?? undefined,
+    };
   },
 };
 
 // ------------------------------------
-// Leaderboard
+// Server-only features — unavailable without the backend
 // ------------------------------------
+
+const NO_BACKEND = 'This needs the Hoopchain server, which the static site does not use.';
+
+async function unavailable(): Promise<never> {
+  throw apiError(NO_BACKEND, 503);
+}
 
 export const leaderboardApi = {
-  getToday: async (): Promise<LeaderboardEntry[]> => {
-    try {
-      const { data } = await http.get<LeaderboardEntry[]>('/leaderboard/today');
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+  available: false,
+  getToday: async (): Promise<LeaderboardEntry[]> => [],
 };
 
-// ------------------------------------
-// Email subscription
-// ------------------------------------
-
-export const subscribeApi = {
-  subscribe: async (email: string): Promise<{ status: string }> => {
-    try {
-      const { data } = await http.post<{ status: string }>('/subscribe', { email });
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+export const subscribeApi: {
+  available: boolean;
+  subscribe(email: string): Promise<{ status: string }>;
+} = {
+  available: false,
+  subscribe: unavailable,
 };
 
 // ------------------------------------
@@ -233,45 +274,19 @@ export interface AdminSubscriberRow {
   created_at: string | null;
 }
 
-export const adminApi = {
-  getPuzzles: async (adminKey: string): Promise<AdminPuzzleRow[]> => {
-    try {
-      const { data } = await http.get<AdminPuzzleRow[]>('/admin/puzzles', {
-        headers: { 'X-Admin-Key': adminKey },
-      });
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
-
-  overridePuzzle: async (
+export const adminApi: {
+  available: boolean;
+  getPuzzles(adminKey: string): Promise<AdminPuzzleRow[]>;
+  overridePuzzle(
     adminKey: string,
     puzzleDate: string,
     startPlayerId: string,
     endPlayerId: string,
-  ): Promise<{ status: string; optimal_hops: number; difficulty: string }> => {
-    try {
-      const { data } = await http.post(
-        '/admin/puzzle/override',
-        { puzzle_date: puzzleDate, start_player_id: startPlayerId, end_player_id: endPlayerId },
-        { headers: { 'X-Admin-Key': adminKey } },
-      );
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
-
-  getSubscribers: async (adminKey: string, limit = 200): Promise<AdminSubscriberRow[]> => {
-    try {
-      const { data } = await http.get<AdminSubscriberRow[]>('/admin/subscribers', {
-        headers: { 'X-Admin-Key': adminKey },
-        params: { limit },
-      });
-      return data;
-    } catch (err) {
-      return handleError(err);
-    }
-  },
+  ): Promise<{ status: string; optimal_hops: number; difficulty: string }>;
+  getSubscribers(adminKey: string, limit?: number): Promise<AdminSubscriberRow[]>;
+} = {
+  available: false,
+  getPuzzles: unavailable,
+  overridePuzzle: unavailable,
+  getSubscribers: unavailable,
 };

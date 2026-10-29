@@ -463,7 +463,8 @@ export function ResultModal() {
                   </div>
                 )}
 
-                {/* Email capture — available on both daily + free play */}
+                {/* Email capture — needs the backend, so hidden while the site runs static */}
+                {subscribeApi.available && (
                 <div
                   style={{
                     padding: '12px',
@@ -533,6 +534,7 @@ export function ResultModal() {
                     </p>
                   )}
                 </div>
+                )}
 
                 {/* Share buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

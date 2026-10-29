@@ -18,7 +18,7 @@
 | Database | PostgreSQL 16 |
 | Cache | Redis 7 |
 | ORM | SQLAlchemy 2.0 (async) |
-| Deploy | GitHub Pages (frontend) + Railway (backend) |
+| Deploy | GitHub Pages — the game runs in the browser from static data (backend in `backend/` is dormant) |
 
 ---
 

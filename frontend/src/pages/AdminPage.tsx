@@ -9,6 +9,27 @@ import { useState, useEffect, useCallback } from 'react';
 import { adminApi, searchApi, type AdminPuzzleRow, type AdminSubscriberRow } from '../api/client';
 
 export function AdminPage() {
+  if (!adminApi.available) return <AdminUnavailable />;
+  return <AdminLogin />;
+}
+
+// Admin tools edit the server's puzzle table; the static site has no server
+function AdminUnavailable() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)', padding: 24 }}>
+      <div style={{ maxWidth: 360, textAlign: 'center', fontFamily: "'Barlow', sans-serif", color: 'var(--color-text)' }}>
+        <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '1.5rem', letterSpacing: '0.08em', marginBottom: 12 }}>ADMIN</h1>
+        <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 16 }}>
+          Admin tools need the Hoopchain server. This version of the site runs entirely in the
+          browser, and daily puzzles come from the schedule in <code>public/data/daily.json</code>.
+        </p>
+        <a href="#/" style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>← Back to game</a>
+      </div>
+    </div>
+  );
+}
+
+function AdminLogin() {
   const [authed, setAuthed] = useState(false);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState(false);

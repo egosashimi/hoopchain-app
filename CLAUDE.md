@@ -19,51 +19,64 @@ end of every session describing what changed. `HOOPCHAIN_MASTER_BLUEPRINT.md` an
 
 ## Golden rules (violating these breaks prod)
 
-1. **Never add a pre-deploy command** to `railway.toml` or the Railway dashboard.
-   It cannot reach Postgres during that phase and breaks every deploy. The DB is
-   already migrated.
-2. **Never use Railway `${{Postgres.*}}` / `${{Redis.*}}` variable references** —
-   they resolve to localhost in this project. Always use hardcoded internal
-   hostnames (below).
-3. **`USE_MOCK_GRAPH=false` must stay set** in Railway. Without it the app
-   silently falls back to a 27-player mock graph with no error. The mock fallback
-   never raises — a broken DB connection returns mock data silently, so verify
-   `/health` returns `graph_nodes≈4832, mock_mode=false` after any infra change.
-4. **`backend/graph.pkl` is committed intentionally** (~21MB). Railway needs it at
-   build time. Do not gitignore it. Default `GRAPH_PICKLE_PATH=graph.pkl` resolves
-   to `/app/graph.pkl` in the container — do not change it.
-5. **Frontend deploys to GitHub Pages** from the public repo
+1. **The live game has no backend.** The frontend runs entirely in the browser on
+   GitHub Pages: `frontend/src/engine/` does search, hop validation, BFS/GOAT,
+   free play, scoring and share text from `frontend/public/data/graph.json` +
+   `daily.json`. `src/api/client.ts` keeps the old endpoint-shaped interface but
+   calls the engine — do not reintroduce HTTP calls to Railway without Kai asking.
+2. **After rebuilding `backend/graph.pkl`, run `python data/etl/19_export_static_data.py`
+   and commit both data files.** `daily.json` is append-only: never edit or
+   regenerate existing dates (the script refuses to change its start date), and
+   extend `SCHEDULE_END` before the schedule runs out (dates past it fall back to
+   a date-seeded generator, so the game never breaks, but scheduled puzzles are better).
+3. **Frontend deploys to GitHub Pages** from the public repo
    `egosashimi/hoopchain-app`: `.github/workflows/deploy-pages.yml` builds
    `frontend/` and force-pushes it to the `gh-pages` branch (Settings → Pages →
    Source: Deploy from a branch → `gh-pages` / root). The workflow skips private
-   repos. The Vite `base` comes from `VITE_BASE_PATH`, set by the workflow — never hardcode
-   root-absolute asset paths in `src/`. Routing is hash-based (`#/admin`), so no
-   SPA rewrites are needed. The repo is public: never commit secrets, and never
-   put a secret in a `VITE_*` var (they are bundled into public JS).
-6. **You cannot change Railway dashboard settings** (token lacks permission). When
-   a dashboard change is required, stop and tell Kai exactly what to set; he does
-   it. Never click "Apply N changes" with stale pending changes queued.
+   repos. The Vite `base` comes from `VITE_BASE_PATH`, set by the workflow — never
+   hardcode root-absolute paths in `src/` (fetch data via `import.meta.env.BASE_URL`).
+   Routing is hash-based (`#/admin`), so no SPA rewrites are needed. The repo is
+   public: never commit secrets, and never put a secret in a `VITE_*` var (they
+   are bundled into public JS).
+4. **`backend/graph.pkl` is committed intentionally** (~21MB). It is the source
+   for the static export (and for the dormant backend). Do not gitignore it.
+5. **Server-only features are off**, behind `available: false` flags in
+   `client.ts`: email signup (hidden in ResultModal), leaderboard, and the admin
+   page (shows a notice). Stats and streaks live in localStorage (`userStore`).
+
+### Dormant backend (Railway) — only if it is ever revived
+
+The FastAPI backend in `backend/` is kept but unused by the live site. If it is
+brought back: never add a pre-deploy command to `railway.toml`/dashboard (it can't
+reach Postgres then); never use Railway `${{Postgres.*}}`/`${{Redis.*}}` references
+(they resolve to localhost here — use the internal hostnames below);
+`USE_MOCK_GRAPH=false` must stay set (the mock fallback is silent — verify
+`/health` shows `mock_mode=false`); you cannot change Railway dashboard settings —
+tell Kai exactly what to set. Railway deploys from the private `egosashimi/hoopchain`.
 
 ---
 
 ## Architecture
 
 - **Frontend:** React + Vite → GitHub Pages (`frontend/`). State in Zustand
-  (`gameStore.ts`, `userStore.ts`). API client in `src/api/client.ts`.
-- **Backend:** FastAPI → Railway (`backend/`). Routers: puzzle, validate, search,
-  game, health, admin, subscribe. Services: graph (NetworkX BFS + hop validation),
-  search (Postgres FTS + ILIKE fallback), puzzle (Redis-cached daily), score.
-- **Data:** PostgreSQL + Redis on Railway. Graph is NetworkX in-memory, loaded
-  from `backend/graph.pkl` at startup (~4,832 nodes / ~204,825 edges).
-- **ETL:** `data/etl/01..08_*.py` (Kaggle nbadb base + Balldontlie current-season
-  patch). Source dataset is nbadb — we do NOT scrape Basketball-Reference.
-- **Repos:** `egosashimi/hoopchain-app` (public) is canonical and hosts the
-  Pages site; it began as a single clean commit with no history.
-  `egosashimi/hoopchain` (private) holds the old history and is still what
-  Railway deploys the backend from until Kai repoints Railway (dashboard) — until
-  then, push backend changes to both repos' `main`.
-- **Deploy:** push to `main` → Railway auto-deploys the backend; the
-  `deploy-pages.yml` GitHub Action builds and publishes the frontend.
+  (`gameStore.ts`, `userStore.ts`). `src/api/client.ts` → `src/engine/`
+  (`graph.ts`: groups, connections, BFS, search; `puzzles.ts`: daily schedule,
+  free play, scoring, share text).
+- **Data files:** `graph.json` stores connections as groups (team-season rosters,
+  draft classes, colleges, All-Star games, coach stints), not pairwise edges; two
+  players connect when they share a group. Rebuilding rosters from labels also
+  restores teammate pairs the pickle's simple graph overwrote with draft/college
+  edges. Classic = teammate groups only, Wild = all. `daily.json` is
+  `{start, puzzles: [[startId, endId], ...]}` indexed by day offset (UTC dates),
+  built from famous/curated/high-score players with the weekday difficulty ramp
+  (Mon–Tue easy, Wed–Fri medium, Sat–Sun hard; hard pairs are scarce, so they are
+  spread out and the rest of the weekend days are medium).
+- **ETL:** `data/etl/01..18_*.py` built the Postgres DB and `graph.pkl` (Kaggle
+  nbadb base + Balldontlie/nba_api patches); `19_export_static_data.py` builds the
+  static data. Source dataset is nbadb — we do NOT scrape Basketball-Reference.
+- **Repos:** `egosashimi/hoopchain-app` (public) is canonical and hosts the Pages
+  site; it began as a single clean commit with no history. `egosashimi/hoopchain`
+  (private) holds the old history and the Railway deploy source.
 
 ---
 
@@ -88,10 +101,15 @@ Balldontlie IDs will NOT resolve.
 ## Common commands
 
 ```bash
-# Local dev
+# Local dev (no backend needed)
+cd frontend && npm run dev           # http://localhost:5173
+
+# Rebuild static game data after graph.pkl changes (needs networkx)
+python data/etl/19_export_static_data.py
+
+# Dormant backend only
 docker-compose up -d                 # Postgres :5433, Redis :6379
 cd backend && python -m uvicorn app.main:app --reload --port 8000
-cd frontend && npm run dev           # http://localhost:5173
 
 # Health check (prod)
 curl https://hoopchain-backend-production.up.railway.app/health
