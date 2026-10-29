@@ -1,0 +1,116 @@
+# ============================================================
+# HOOPCHAIN .gitignore
+# ============================================================
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.pyo
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# --- Virtual Environments ---
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Data files (large, generated) ---
+data/exports/
+*.pkl
+!backend/graph.pkl
+*.sqlite
+*.db
+*.parquet
+*.zip
+*.gz
+
+# --- Kaggle credentials ---
+.kaggle/
+kaggle.json
+data/etl/.env
+
+# --- Frontend ---
+node_modules/
+frontend/dist/
+frontend/.cache/
+frontend/build/
+*.tsbuildinfo
+
+# --- Environment files ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Testing ---
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+*.cover
+coverage.xml
+nosetests.xml
+
+# --- Alembic ---
+# Keep migrations, exclude pycache
+backend/alembic/__pycache__/
+
+# --- Docker ---
+.docker/
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# --- Claude Code (per-machine settings) ---
+.claude/settings.local.json

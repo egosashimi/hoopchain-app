@@ -1,0 +1,57 @@
+name: Deploy Frontend (GitHub Pages)
+
+# Builds frontend/ and publishes it to the gh-pages branch, which GitHub Pages
+# serves (Settings → Pages → Source: Deploy from a branch → gh-pages / root).
+# Only runs on the public repo; the private backend repo skips it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build
+        run: npm run build && touch dist/.nojekyll
+        working-directory: frontend
+        env:
+          # Served from /<repo>/ on github.io; set repo variable VITE_BASE_PATH=/ for a custom domain
+          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || format('/{0}/', github.event.repository.name) }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://hoopchain-backend-production.up.railway.app' }}
+
+      - name: Publish to gh-pages
+        working-directory: frontend/dist
+        run: |
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages

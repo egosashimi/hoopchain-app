@@ -1,0 +1,411 @@
+{
+  "_comment": "Famous players seed file for puzzle generation. Players here will be used as START and END nodes for daily puzzles. Only use household names — obscure players are poor endpoints.",
+  "_last_updated": "May 2026",
+  "players": [
+    {
+      "id": "893",
+      "name": "Michael Jordan",
+      "era": "90s"
+    },
+    {
+      "id": "77142",
+      "name": "Magic Johnson",
+      "era": "80s"
+    },
+    {
+      "id": "1449",
+      "name": "Larry Bird",
+      "era": "80s"
+    },
+    {
+      "id": "76003",
+      "name": "Kareem Abdul-Jabbar",
+      "era": "70s-80s"
+    },
+    {
+      "id": "76681",
+      "name": "Julius Erving",
+      "era": "70s-80s"
+    },
+    {
+      "id": "77449",
+      "name": "Moses Malone",
+      "era": "80s"
+    },
+    {
+      "id": "78318",
+      "name": "Isiah Thomas",
+      "era": "80s-90s"
+    },
+    {
+      "id": "937",
+      "name": "Scottie Pippen",
+      "era": "90s"
+    },
+    {
+      "id": "23",
+      "name": "Dennis Rodman",
+      "era": "90s"
+    },
+    {
+      "id": "787",
+      "name": "Charles Barkley",
+      "era": "90s"
+    },
+    {
+      "id": "304",
+      "name": "John Stockton",
+      "era": "90s"
+    },
+    {
+      "id": "252",
+      "name": "Karl Malone",
+      "era": "90s"
+    },
+    {
+      "id": "56",
+      "name": "Gary Payton",
+      "era": "90s"
+    },
+    {
+      "id": "397",
+      "name": "Reggie Miller",
+      "era": "90s"
+    },
+    {
+      "id": "165",
+      "name": "Hakeem Olajuwon",
+      "era": "90s"
+    },
+    {
+      "id": "764",
+      "name": "David Robinson",
+      "era": "90s"
+    },
+    {
+      "id": "201607",
+      "name": "Patrick Ewing",
+      "era": "90s"
+    },
+    {
+      "id": "406",
+      "name": "Shaquille O'Neal",
+      "era": "90s-00s"
+    },
+    {
+      "id": "977",
+      "name": "Kobe Bryant",
+      "era": "00s-10s"
+    },
+    {
+      "id": "2544",
+      "name": "LeBron James",
+      "era": "00s-20s"
+    },
+    {
+      "id": "1495",
+      "name": "Tim Duncan",
+      "era": "00s-10s"
+    },
+    {
+      "id": "708",
+      "name": "Kevin Garnett",
+      "era": "00s-10s"
+    },
+    {
+      "id": "1718",
+      "name": "Paul Pierce",
+      "era": "00s-10s"
+    },
+    {
+      "id": "1713",
+      "name": "Vince Carter",
+      "era": "00s-10s"
+    },
+    {
+      "id": "1503",
+      "name": "Tracy McGrady",
+      "era": "00s"
+    },
+    {
+      "id": "2548",
+      "name": "Dwyane Wade",
+      "era": "00s-10s"
+    },
+    {
+      "id": "947",
+      "name": "Allen Iverson",
+      "era": "00s"
+    },
+    {
+      "id": "2730",
+      "name": "Dwight Howard",
+      "era": "00s-10s"
+    },
+    {
+      "id": "2546",
+      "name": "Carmelo Anthony",
+      "era": "00s-10s"
+    },
+    {
+      "id": "101108",
+      "name": "Chris Paul",
+      "era": "00s-20s"
+    },
+    {
+      "id": "959",
+      "name": "Steve Nash",
+      "era": "00s-10s"
+    },
+    {
+      "id": "2225",
+      "name": "Tony Parker",
+      "era": "00s-10s"
+    },
+    {
+      "id": "1938",
+      "name": "Manu Ginobili",
+      "era": "00s-10s"
+    },
+    {
+      "id": "951",
+      "name": "Ray Allen",
+      "era": "00s-10s"
+    },
+    {
+      "id": "2547",
+      "name": "Chris Bosh",
+      "era": "00s-10s"
+    },
+    {
+      "id": "101114",
+      "name": "Deron Williams",
+      "era": "00s-10s"
+    },
+    {
+      "id": "200765",
+      "name": "Rajon Rondo",
+      "era": "00s-10s"
+    },
+    {
+      "id": "2200",
+      "name": "Pau Gasol",
+      "era": "00s-10s"
+    },
+    {
+      "id": "2405",
+      "name": "Amare Stoudemire",
+      "era": "00s-10s"
+    },
+    {
+      "id": "2240",
+      "name": "Gilbert Arenas",
+      "era": "00s"
+    },
+    {
+      "id": "1497",
+      "name": "Chauncey Billups",
+      "era": "00s"
+    },
+    {
+      "id": "201933",
+      "name": "Blake Griffin",
+      "era": "10s-20s"
+    },
+    {
+      "id": "201565",
+      "name": "Derrick Rose",
+      "era": "10s-20s"
+    },
+    {
+      "id": "201566",
+      "name": "Russell Westbrook",
+      "era": "10s-20s"
+    },
+    {
+      "id": "201142",
+      "name": "Kevin Durant",
+      "era": "10s-20s"
+    },
+    {
+      "id": "201935",
+      "name": "James Harden",
+      "era": "10s-20s"
+    },
+    {
+      "id": "201939",
+      "name": "Stephen Curry",
+      "era": "10s-20s"
+    },
+    {
+      "id": "201942",
+      "name": "DeMar DeRozan",
+      "era": "10s-20s"
+    },
+    {
+      "id": "200746",
+      "name": "LaMarcus Aldridge",
+      "era": "10s-20s"
+    },
+    {
+      "id": "201188",
+      "name": "Marc Gasol",
+      "era": "10s-20s"
+    },
+    {
+      "id": "202681",
+      "name": "Kyrie Irving",
+      "era": "10s-20s"
+    },
+    {
+      "id": "202691",
+      "name": "Klay Thompson",
+      "era": "10s-20s"
+    },
+    {
+      "id": "203076",
+      "name": "Anthony Davis",
+      "era": "10s-20s"
+    },
+    {
+      "id": "203081",
+      "name": "Damian Lillard",
+      "era": "10s-20s"
+    },
+    {
+      "id": "203110",
+      "name": "Draymond Green",
+      "era": "10s-20s"
+    },
+    {
+      "id": "203078",
+      "name": "Bradley Beal",
+      "era": "10s-20s"
+    },
+    {
+      "id": "203507",
+      "name": "Giannis Antetokounmpo",
+      "era": "10s-20s"
+    },
+    {
+      "id": "203897",
+      "name": "Zach LaVine",
+      "era": "10s-20s"
+    },
+    {
+      "id": "202331",
+      "name": "Paul George",
+      "era": "10s-20s"
+    },
+    {
+      "id": "203944",
+      "name": "Julius Randle",
+      "era": "10s-20s"
+    },
+    {
+      "id": "203952",
+      "name": "Andrew Wiggins",
+      "era": "10s-20s"
+    },
+    {
+      "id": "203954",
+      "name": "Joel Embiid",
+      "era": "10s-20s"
+    },
+    {
+      "id": "202695",
+      "name": "Kawhi Leonard",
+      "era": "10s-20s"
+    },
+    {
+      "id": "203999",
+      "name": "Nikola Jokic",
+      "era": "10s-20s"
+    },
+    {
+      "id": "1626164",
+      "name": "Devin Booker",
+      "era": "10s-20s"
+    },
+    {
+      "id": "1627759",
+      "name": "Jaylen Brown",
+      "era": "20s"
+    },
+    {
+      "id": "1628369",
+      "name": "Jayson Tatum",
+      "era": "20s"
+    },
+    {
+      "id": "1628389",
+      "name": "Bam Adebayo",
+      "era": "20s"
+    },
+    {
+      "id": "1628378",
+      "name": "Donovan Mitchell",
+      "era": "20s"
+    },
+    {
+      "id": "1628983",
+      "name": "Shai Gilgeous-Alexander",
+      "era": "20s"
+    },
+    {
+      "id": "1629027",
+      "name": "Trae Young",
+      "era": "20s"
+    },
+    {
+      "id": "1629029",
+      "name": "Luka Doncic",
+      "era": "20s"
+    },
+    {
+      "id": "1629627",
+      "name": "Zion Williamson",
+      "era": "20s"
+    },
+    {
+      "id": "1629630",
+      "name": "Ja Morant",
+      "era": "20s"
+    },
+    {
+      "id": "1630163",
+      "name": "LaMelo Ball",
+      "era": "20s"
+    },
+    {
+      "id": "1630162",
+      "name": "Anthony Edwards",
+      "era": "20s"
+    },
+    {
+      "id": "1630169",
+      "name": "Tyrese Haliburton",
+      "era": "20s"
+    },
+    {
+      "id": "1630595",
+      "name": "Cade Cunningham",
+      "era": "20s"
+    },
+    {
+      "id": "1630596",
+      "name": "Evan Mobley",
+      "era": "20s"
+    },
+    {
+      "id": "1630567",
+      "name": "Scottie Barnes",
+      "era": "20s"
+    },
+    {
+      "id": "1630532",
+      "name": "Franz Wagner",
+      "era": "20s"
+    }
+  ]
+}
