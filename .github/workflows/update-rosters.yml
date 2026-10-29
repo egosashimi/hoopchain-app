@@ -1,9 +1,10 @@
 name: Update Rosters
 
-# Pulls 2025-26+ rosters from NBA.com box scores (20_fetch_recent_rosters.py),
-# rebuilds the static game data (19_export_static_data.py), commits any change
-# and redeploys. Weekly during the season picks up trades and signings.
-# NBA.com is not reachable from the dev container, so this runs here.
+# Pulls 2025-26+ rosters from Wikipedia roster templates + Wikidata IDs
+# (20_fetch_recent_rosters.py), rebuilds the static game data
+# (19_export_static_data.py), commits any change and redeploys. Weekly during
+# the season picks up trades and signings. Wikipedia is not reachable from the
+# dev container, so this runs here.
 
 on:
   workflow_dispatch:
@@ -34,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: pip install networkx==3.7
 
-      - name: Fetch rosters from NBA.com box scores
+      - name: Fetch rosters from Wikipedia
         run: python data/etl/20_fetch_recent_rosters.py
 
       - name: Rebuild static game data
@@ -51,7 +52,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Update rosters from NBA.com box scores"
+          git commit -m "Update rosters from Wikipedia"
           git push
           # Pushes made with GITHUB_TOKEN don't trigger other workflows; dispatch the deploy
           gh workflow run deploy-pages.yml --ref main
