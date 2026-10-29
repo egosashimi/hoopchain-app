@@ -45,10 +45,10 @@ class PuzzleOverrideRequest(BaseModel):
 
 @router.post("/flush-puzzle-cache")
 async def flush_puzzle_cache(_: None = Depends(require_admin)):
-    """Flush all puzzle:date:* Redis keys. Run once after 13_fix_optimal_hops.py."""
+    """Flush all puzzle:v2:date:* Redis keys. Run once after 13_fix_optimal_hops.py."""
     redis = get_redis()
     deleted = 0
-    async for key in redis.scan_iter(match="puzzle:date:*"):
+    async for key in redis.scan_iter(match="puzzle:v2:date:*"):
         await redis.delete(key)
         deleted += 1
     return {"status": "ok", "keys_deleted": deleted}

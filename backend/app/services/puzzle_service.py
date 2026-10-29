@@ -10,6 +10,7 @@ import random
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import DailyPuzzle, Player
@@ -161,6 +162,10 @@ async def get_puzzle_for_date(db: AsyncSession, puzzle_date: date) -> dict:
             result = await db.execute(stmt)
             puzzle = result.scalar_one_or_none()
 
+            # Seeded puzzles ran out → generate today's so the daily never goes stale
+            if puzzle is None and puzzle_date == date.today():
+                puzzle = await _generate_daily_puzzle(db, puzzle_date)
+
             if puzzle:
                 data = await _puzzle_to_response(puzzle, db)
                 ttl = ttl_until_midnight_utc() if puzzle_date == date.today() else 86400 * 30
@@ -169,11 +174,78 @@ async def get_puzzle_for_date(db: AsyncSession, puzzle_date: date) -> dict:
         except Exception as e:
             logger.warning(f"Database puzzle fetch failed: {e}")
 
-    # 3. Fall back to mock puzzle
+    # 3. Fall back to mock puzzle. With the real graph this means something failed,
+    # so cache it only briefly and retry the DB soon.
     data = _get_mock_puzzle(puzzle_date)
-    ttl = ttl_until_midnight_utc() if puzzle_date == date.today() else 3600
+    if not settings.use_mock_graph:
+        logger.error(f"Serving mock puzzle for {puzzle_date} — no DB puzzle and generation failed")
+        ttl = 300
+    else:
+        ttl = ttl_until_midnight_utc() if puzzle_date == date.today() else 3600
     await cache_set(cache_key, data, ttl)
     return data
+
+
+# Difficulty of auto-generated daily puzzles, indexed by weekday (0=Monday):
+# ramps easy → hard through the week.
+DAILY_DIFFICULTY_BY_WEEKDAY = ["easy", "easy", "medium", "medium", "medium", "hard", "hard"]
+
+
+async def _generate_daily_puzzle(db: AsyncSession, puzzle_date: date) -> DailyPuzzle | None:
+    """
+    Generate and persist a daily puzzle for a date with no seeded row.
+
+    Samples a pair from the free-play recognizability pool at the weekday's
+    difficulty, skipping every pair already used as a daily puzzle. If another
+    worker inserts the same date first, returns that row instead.
+    """
+    from .free_play_service import generate_free_play_puzzle, pair_id
+    from .graph_service import find_shortest_path_with_labels_for_mode
+
+    used = await db.execute(select(DailyPuzzle.start_player_id, DailyPuzzle.end_player_id))
+    used_ids = [pair_id(s, e) for s, e in used.all()]
+
+    difficulty = DAILY_DIFFICULTY_BY_WEEKDAY[puzzle_date.weekday()]
+    generated = await generate_free_play_puzzle(
+        db, mode="classic", difficulty=difficulty, exclude_ids=used_ids
+    )
+    if not generated:
+        # A missed difficulty target must not cost the day its puzzle
+        logger.warning(f"No {difficulty} pair for {puzzle_date}; generating without a difficulty target")
+        generated = await generate_free_play_puzzle(db, mode="classic", exclude_ids=used_ids)
+    if not generated:
+        return None
+
+    start_id = generated["start_player"]["id"]
+    end_id = generated["end_player"]["id"]
+    path = find_shortest_path_with_labels_for_mode(start_id, "player", end_id, "player", "classic")
+    if not path:
+        return None
+
+    puzzle = DailyPuzzle(
+        puzzle_date=puzzle_date,
+        start_player_id=start_id,
+        end_player_id=end_id,
+        canonical_path=path,
+        optimal_hops=generated["optimal_hops"],
+        difficulty=generated["difficulty"],
+        edge_types_used=[n["edge_type"] for n in path if n.get("edge_type")],
+        available_modes=generated["available_modes"],
+        is_published=True,
+    )
+    try:
+        async with db.begin_nested():
+            db.add(puzzle)
+    except IntegrityError:
+        result = await db.execute(select(DailyPuzzle).where(DailyPuzzle.puzzle_date == puzzle_date))
+        return result.scalar_one_or_none()
+
+    logger.info(
+        f"Generated daily puzzle for {puzzle_date}: "
+        f"{generated['start_player']['full_name']} → {generated['end_player']['full_name']} "
+        f"({generated['difficulty']}, GOAT {generated['optimal_hops']})"
+    )
+    return puzzle
 
 
 async def get_random_puzzle(

@@ -47,14 +47,14 @@ def ttl_until_midnight_utc() -> int:
 
 class CacheKey:
     PUZZLE_TODAY = "puzzle:today"
-    PUZZLE_DATE = "puzzle:date:{date}"
+    PUZZLE_DATE = "puzzle:v2:date:{date}"
     HOP = "path:{a}:{b}"
     SEARCH = "search:{query}"
     LEADERBOARD_TODAY = "leaderboard:today"
 
     @staticmethod
     def puzzle_date(date: str) -> str:
-        return f"puzzle:date:{date}"
+        return f"puzzle:v2:date:{date}"
 
     @staticmethod
     def hop(node_a: str, node_b: str) -> str:

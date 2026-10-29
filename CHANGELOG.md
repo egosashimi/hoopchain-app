@@ -1,5 +1,7 @@
 ## Changelog
 
+2026-10-29: Daily puzzles never run out — the 140 seeded puzzles ended ~2026-10-14 and the backend silently served the 7 weekday mock puzzles; when today has no daily_puzzles row it now generates one from the free-play recognizability pool (weekday difficulty ramp Mon–Tue easy / Wed–Fri medium / Sat–Sun hard, falls back to any difficulty; never reuses a pair; race-safe on the puzzle_date unique key) and persists it; mock fallback in real-graph mode is cached 5 min instead of until midnight; puzzle cache key bumped to puzzle:v2:date:* so today's cached mock is dropped on deploy.
+
 2026-10-29: Created public repo egosashimi/hoopchain-app from a single clean commit of main (no history); Pages deploy switched to a gh-pages branch publish (workflow skips private repos); Railway still deploys the backend from the private egosashimi/hoopchain.
 
 2026-10-29: Prep for public repo + GitHub Pages — scrubbed prod DB password, revoked Railway token, Railway IDs and DB proxy endpoint from all git history; verify_free_play.py reads DATABASE_URL from env; admin page now checks the key server-side instead of bundling VITE_ADMIN_PASSWORD; replaced Vercel deploy (workflow, vercel.json, @vercel/analytics) with a GitHub Pages Actions workflow (Vite base from VITE_BASE_PATH, relative manifest paths); CORS allows https://egosashimi.github.io; untracked .claude/settings.local.json.
