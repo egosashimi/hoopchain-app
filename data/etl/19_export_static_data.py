@@ -7,6 +7,11 @@ script turns backend/graph.pkl into the files it loads:
   frontend/public/data/graph.json  — players, coaches and connection groups
   frontend/public/data/daily.json  — the daily puzzle schedule (append-only)
 
+Seasons after graph.pkl's last one (2024-25) come from data/rosters/*.json
+(written by 20_fetch_recent_rosters.py from NBA.com box scores) and are merged in
+as teammate groups; players new to the league are added as nodes, and "active"
+means on a roster in the latest season file.
+
 Connections are stored as groups rather than pairwise edges: every
 "2008-09 Boston Celtics Teammates" label becomes one roster, every draft class /
 college / All-Star game one group, and every "Coached by ..." label a coach plus
@@ -38,6 +43,7 @@ import networkx as nx
 ROOT = Path(__file__).resolve().parents[2]
 GRAPH_PKL = ROOT / "backend" / "graph.pkl"
 FAMOUS_JSON = ROOT / "data" / "seeds" / "famous_players.json"
+ROSTERS_DIR = ROOT / "data" / "rosters"
 OUT_DIR = ROOT / "frontend" / "public" / "data"
 
 SCHEDULE_START = date(2026, 10, 1)
@@ -78,6 +84,25 @@ def main() -> None:
     G: nx.Graph = pickle.load(open(GRAPH_PKL, "rb"))
     famous_ids = {p["id"] for p in json.load(open(FAMOUS_JSON))["players"]}
 
+    # ---- Recent-season rosters (in memory only; graph.pkl is not modified) ----
+    roster_groups: dict[str, set[str]] = collections.defaultdict(set)
+    latest_roster: set[str] | None = None
+    for path in sorted(ROSTERS_DIR.glob("*.json")):
+        season = json.loads(path.read_text())
+        latest_roster = set()
+        for team in season["teams"].values():
+            label = f"{season['season']} {team['name']} Teammates"
+            for pid, name in team["players"].items():
+                key = f"player:{pid}"
+                if key not in G:
+                    G.add_node(key, type="player", name=name, is_active=True)
+                roster_groups[label].add(key)
+                latest_roster.add(key)
+    if latest_roster is not None:
+        for k, d in G.nodes(data=True):
+            if d.get("type") == "player":
+                d["is_active"] = k in latest_roster
+
     keys = sorted(G.nodes, key=lambda k: (G.nodes[k].get("type") != "player", k))
     index = {k: i for i, k in enumerate(keys)}
 
@@ -89,6 +114,8 @@ def main() -> None:
             coach_groups[d["label"]].update((u, v))
         else:
             groups[(d["type"], d["label"])].update((u, v))
+    for label, members in roster_groups.items():
+        groups[("teammate", label)].update(members)
 
     # ---- Per-player derived attributes ----
     seasons: dict[str, set[int]] = collections.defaultdict(set)
@@ -132,6 +159,7 @@ def main() -> None:
         return [e for e, (lo, hi) in ERA_RANGES.items() if first <= hi and last >= lo]
 
     players = [k for k in keys if G.nodes[k].get("type") == "player"]
+    roster_seasons = sorted({l[:7] for _, l in groups if l[:7] > "2024-25" and l[4] == "-"})
     scores = {k: score(k) for k in players}
 
     # ---- Free-play pools (same construction as free_play_service._build_pool) ----
@@ -260,6 +288,7 @@ def main() -> None:
         hops = nx.shortest_path_length(classic, f"player:{a}", f"player:{b}") - 1
         band_count[(DAILY_DIFFICULTY_BY_WEEKDAY[(SCHEDULE_START + timedelta(days=offset)).weekday()],
                     difficulty_label(hops))] += 1
+    print(f"recent seasons merged from data/rosters: {roster_seasons or 'none'}")
     print(f"graph.json: {len(keys)} nodes, {len(groups_out)} groups, {len(coaches_out)} coach groups, "
           f"{len(wild_pairs)} connected pairs; pools: " + ", ".join(f"{k}={len(v)}" for k, v in pools.items()))
     print(f"daily.json: {len(schedule)} days ({len(existing)} kept) {SCHEDULE_START}..{SCHEDULE_END}; "

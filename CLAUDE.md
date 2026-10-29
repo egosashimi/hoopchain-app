@@ -40,7 +40,15 @@ end of every session describing what changed. `HOOPCHAIN_MASTER_BLUEPRINT.md` an
    are bundled into public JS).
 4. **`backend/graph.pkl` is committed intentionally** (~21MB). It is the source
    for the static export (and for the dormant backend). Do not gitignore it.
-5. **Server-only features are off**, behind `available: false` flags in
+5. **Seasons after 2024-25 come from `data/rosters/<season>.json`**, not graph.pkl.
+   `.github/workflows/update-rosters.yml` (weekly + manual) runs
+   `20_fetch_recent_rosters.py` (NBA.com CDN box scores → rosters by NBA Stats
+   person ID) and the export, commits, and dispatches the Pages deploy. NBA.com
+   is unreachable from the dev container — trigger the workflow instead of
+   fetching locally. New players get teammate connections only (no draft/college
+   data in box scores). Never hand-edit roster files; completed seasons are
+   fetched once (delete the file to refetch).
+6. **Server-only features are off**, behind `available: false` flags in
    `client.ts`: email signup (hidden in ResultModal), leaderboard, and the admin
    page (shows a notice). Stats and streaks live in localStorage (`userStore`).
 
@@ -72,8 +80,9 @@ tell Kai exactly what to set. Railway deploys from the private `egosashimi/hoopc
   (Mon–Tue easy, Wed–Fri medium, Sat–Sun hard; hard pairs are scarce, so they are
   spread out and the rest of the weekend days are medium).
 - **ETL:** `data/etl/01..18_*.py` built the Postgres DB and `graph.pkl` (Kaggle
-  nbadb base + Balldontlie/nba_api patches); `19_export_static_data.py` builds the
-  static data. Source dataset is nbadb — we do NOT scrape Basketball-Reference.
+  nbadb base + Balldontlie/nba_api patches, through 2024-25);
+  `19_export_static_data.py` builds the static data from graph.pkl + `data/rosters/`;
+  `20_fetch_recent_rosters.py` fetches 2025-26+ rosters (Actions only). Source dataset is nbadb — we do NOT scrape Basketball-Reference.
 - **Repos:** `egosashimi/hoopchain-app` (public) is canonical and hosts the Pages
   site; it began as a single clean commit with no history. `egosashimi/hoopchain`
   (private) holds the old history and the Railway deploy source.
