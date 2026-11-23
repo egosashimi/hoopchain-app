@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!-- Background -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#1A1F2E"/>
+      <stop offset="100%" stop-color="#0F1117"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF6B35" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#FF6B35" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <ellipse cx="600" cy="315" rx="420" ry="280" fill="url(#glow)"/>
+
+  <!-- Subtle grid lines -->
+  <line x1="0" y1="210" x2="1200" y2="210" stroke="#2D3348" stroke-width="1" stroke-opacity="0.4"/>
+  <line x1="0" y1="420" x2="1200" y2="420" stroke="#2D3348" stroke-width="1" stroke-opacity="0.4"/>
+  <line x1="400" y1="0" x2="400" y2="630" stroke="#2D3348" stroke-width="1" stroke-opacity="0.4"/>
+  <line x1="800" y1="0" x2="800" y2="630" stroke="#2D3348" stroke-width="1" stroke-opacity="0.4"/>
+
+  <!-- Basketball icon -->
+  <circle cx="600" cy="160" r="52" fill="#FF6B35" stroke="#CC5228" stroke-width="2"/>
+  <path d="M600 108 Q600 160 600 212" stroke="#CC5228" stroke-width="2" fill="none"/>
+  <path d="M548 160 Q600 160 652 160" stroke="#CC5228" stroke-width="2" fill="none"/>
+  <path d="M558 123 Q600 148 642 197" stroke="#CC5228" stroke-width="1.5" fill="none"/>
+  <path d="M642 123 Q600 148 558 197" stroke="#CC5228" stroke-width="1.5" fill="none"/>
+
+  <!-- Chain connector dots -->
+  <circle cx="370" cy="315" r="10" fill="#FF6B35"/>
+  <circle cx="430" cy="315" r="6" fill="#2D3348"/>
+  <circle cx="470" cy="315" r="6" fill="#2D3348"/>
+  <circle cx="510" cy="315" r="6" fill="#2D3348"/>
+  <circle cx="600" cy="315" r="14" fill="#FF6B35" filter="url(#glow)"/>
+  <circle cx="690" cy="315" r="6" fill="#2D3348"/>
+  <circle cx="730" cy="315" r="6" fill="#2D3348"/>
+  <circle cx="770" cy="315" r="6" fill="#2D3348"/>
+  <circle cx="830" cy="315" r="10" fill="#F0F2F8"/>
+  <line x1="380" y1="315" x2="590" y2="315" stroke="#FF6B35" stroke-width="2" stroke-dasharray="8 4" stroke-opacity="0.6"/>
+  <line x1="614" y1="315" x2="820" y2="315" stroke="#8892A4" stroke-width="2" stroke-dasharray="8 4" stroke-opacity="0.4"/>
+
+  <!-- HOOPCHAIN wordmark -->
+  <text x="600" y="420" text-anchor="middle" font-family="'Arial Black', 'Impact', sans-serif" font-size="80" font-weight="900" letter-spacing="-2" fill="#F0F2F8">HOOPCHAIN</text>
+
+  <!-- Tagline -->
+  <text x="600" y="468" text-anchor="middle" font-family="'Arial', sans-serif" font-size="24" font-weight="400" letter-spacing="4" fill="#8892A4">DAILY NBA CONNECTION GAME</text>
+
+  <!-- Edge type legend -->
+  <circle cx="390" cy="530" r="7" fill="#22C55E"/>
+  <text x="404" y="536" font-family="Arial" font-size="18" fill="#8892A4">Teammate</text>
+  <circle cx="520" cy="530" r="7" fill="#3B82F6"/>
+  <text x="534" y="536" font-family="Arial" font-size="18" fill="#8892A4">College</text>
+  <circle cx="636" cy="530" r="7" fill="#EAB308"/>
+  <text x="650" y="536" font-family="Arial" font-size="18" fill="#8892A4">Draft Class</text>
+  <circle cx="768" cy="530" r="7" fill="#A855F7"/>
+  <text x="782" y="536" font-family="Arial" font-size="18" fill="#8892A4">Coach</text>
+
+  <!-- Border frame -->
+  <rect x="1" y="1" width="1198" height="628" rx="0" fill="none" stroke="#2D3348" stroke-width="2"/>
+</svg>

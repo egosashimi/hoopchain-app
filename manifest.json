@@ -1,0 +1,20 @@
+{
+  "name": "Hoopchain",
+  "short_name": "Hoopchain",
+  "description": "Daily NBA connection game — chain players through shared relationships",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0F1117",
+  "theme_color": "#FF6B35",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "sports"],
+  "lang": "en"
+}
